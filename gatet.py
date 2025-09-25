@@ -1,5 +1,4 @@
-import requests
-import re
+import requests, re
 
 def Tele(ccx):
     import requests
@@ -74,7 +73,6 @@ def Tele(ccx):
         'form_id': '4',
     }
     
-    # FIXED LINE: Added missing single quote after URL
     r2 = requests.post('https://allcoughedup.com/wp-admin/admin-ajax.php', params=params, cookies=cookies, headers=headers, data=data)
     
     return str(r2.json())
