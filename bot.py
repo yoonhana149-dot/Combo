@@ -1,20 +1,11 @@
-import os
 import requests
 import telebot, time
 from telebot import types
 from gatet import Tele
+import os
 from datetime import datetime
-from flask import Flask
 
-# Flask app for health check
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Bot is running..."
-
-# Environment variable မှ token ကို ဖတ်ပါ
-token = os.environ.get('BOT_TOKEN', '7808368963:AAHApbi-jKkj0D09VUBaiTwoR5wO1_zeSyY')
+token = '7808368963:AAHApbi-jKkj0D09VUBaiTwoR5wO1_zeSyY'
 bot = telebot.TeleBot(token, parse_mode="HTML")
 
 def format_card(cc):
@@ -196,15 +187,5 @@ def menu_callback(call):
     with open("stop.stop", "w") as file:
         pass
 
-def run_bot():
-    print("Bot is starting...")
-    bot.polling()
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-    # Run bot in background
-    import threading
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.daemon = True
-    bot_thread.start()
+    bot.polling()
