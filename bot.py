@@ -1,11 +1,12 @@
+import os
 import requests
 import telebot, time
 from telebot import types
 from gatet import Tele
-import os
 from datetime import datetime
 
-token = '7808368963:AAHApbi-jKkj0D09VUBaiTwoR5wO1_zeSyY'
+# Environment variable မှ token ကို ဖတ်ပါ
+token = os.environ.get('BOT_TOKEN', '7808368963:AAHApbi-jKkj0D09VUBaiTwoR5wO1_zeSyY')
 bot = telebot.TeleBot(token, parse_mode="HTML")
 
 def format_card(cc):
@@ -187,4 +188,6 @@ def menu_callback(call):
     with open("stop.stop", "w") as file:
         pass
 
-bot.polling()
+if __name__ == "__main__":
+    print("Bot is starting...")
+    bot.polling()
