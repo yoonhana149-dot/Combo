@@ -12,7 +12,7 @@ from flask import Flask, request
 app = Flask(__name__)
 
 # Get token from environment variable
-token = os.getenv('TELEGRAM_BOT_TOKEN', '7808368963:AAHApbi-jKkj0D09VUBaiTwoR5wO1_zeSyY')
+token = os.getenv('TELEGRAM_BOT_TOKEN', '7593327754:AAHoyYqLG3QYdDNvsa0EHFhD4NFgOU5vAeY')
 
 if not token:
     raise ValueError("TELEGRAM_BOT_TOKEN environment variable is required!")
@@ -38,14 +38,14 @@ def format_card(cc):
 
 @bot.message_handler(commands=["start"])
 def start(message):
-    if not str(message.chat.id) == '1753137498':
+    if not str(message.chat.id) == '1944113838':
         bot.reply_to(message, "You cannot use the bot to contact developers to purchase a bot subscription @ZEEXIL")
         return
     bot.reply_to(message, "Send the file now")
 
 @bot.message_handler(content_types=["document"])
 def main(message):
-    if not str(message.chat.id) == '1753137498':
+    if not str(message.chat.id) == '1944113838':
         bot.reply_to(message, "You cannot use the bot to contact developers to purchase a bot subscription @ZEEXIL")
         return
     
